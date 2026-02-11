@@ -1,5 +1,10 @@
+mod packet;
+mod network;
+mod primitives;
+mod player;
+
 use std::{
-    net::{TcpListener, TcpStream},
+    net::{TcpListener},
 };
 
 fn main() {
