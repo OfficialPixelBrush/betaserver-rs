@@ -1,27 +1,77 @@
-struct KeepAlive {
-    id: u8 = 0x00
+pub trait Packet {
+    fn id(&self) -> u8;
+    fn serialize(&self) -> Vec<u8>;
+    fn deserialize(bytes: &[u8]) -> Self
+    where
+        Self: Sized;
 }
 
-impl KeepAlive {
-    fn serialize(&self) -> [u8; 1] {
-        return [self.id];
+pub struct KeepAlive;
+
+impl Packet for KeepAlive {
+    fn id(&self) -> u8 {
+        return 0x00;
+    }
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.id()]
+    }
+    fn deserialize(_: &[u8]) -> Self {
+        Self{}
     }
 }
 
 struct Login {
-    id: u8 = 0x01,
-    entity_id: i32,
-    unused: String,
-    world_seed: i64,
-    dimension: i8
+    pub entity_id: i32,
+    pub unused: String,
+    pub world_seed: i64,
+    pub dimension: i8
+}
+
+impl Packet for Login {
+    fn id(&self) -> u8 {
+        return 0x01;
+    }
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.id()]
+    }
+    fn deserialize(_: &[u8]) -> Self {
+        Self{
+            entity_id: 0,
+            unused: "".to_string(),
+            world_seed: 0,
+            dimension: 0
+        }
+    }
 }
 
 struct Handshake {
-    id: u8 = 0x02,
-    hash : String
+    pub hash : String
+}
+
+impl Packet for Handshake {
+    fn id(&self) -> u8 {
+        return 0x02;
+    }
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.id()]
+    }
+    fn deserialize(_: &[u8]) -> Self {
+        Self{hash: "-".to_string()}
+    }
 }
 
 struct ChatMessage {
-    id: u8 = 0x03,
-    message : String
+    pub message : String
+}
+
+impl Packet for ChatMessage {
+    fn id(&self) -> u8 {
+        return 0x03;
+    }
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.id()]
+    }
+    fn deserialize(_: &[u8]) -> Self {
+        Self{message: "".to_string()}
+    }
 }
