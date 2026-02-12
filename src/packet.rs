@@ -1,77 +1,77 @@
-pub trait Packet {
-    fn id(&self) -> u8;
-    fn serialize(&self) -> Vec<u8>;
-    fn deserialize(bytes: &[u8]) -> Self
-    where
-        Self: Sized;
+use std::net::TcpStream;
+
+use crate::network;
+
+pub enum Packet {
+    KeepAlive,
+    Login {
+        entity_id: i32,
+        unused: String,
+        world_seed: i64,
+        dimension: i8,
+    },
+    Handshake {
+        hash: String,
+    },
+    ChatMessage {
+        message: String,
+    },
+    PlayerPositionLook {
+        x: f64,
+        y: f64,
+        cam_y: f64,
+        z: f64,
+        yaw: f32,
+        pitch: f32,
+        on_ground: bool
+    },
 }
 
-pub struct KeepAlive;
-
-impl Packet for KeepAlive {
-    fn id(&self) -> u8 {
-        return 0x00;
-    }
-    fn serialize(&self) -> Vec<u8> {
-        vec![self.id()]
-    }
-    fn deserialize(_: &[u8]) -> Self {
-        Self{}
-    }
-}
-
-struct Login {
-    pub entity_id: i32,
-    pub unused: String,
-    pub world_seed: i64,
-    pub dimension: i8
-}
-
-impl Packet for Login {
-    fn id(&self) -> u8 {
-        return 0x01;
-    }
-    fn serialize(&self) -> Vec<u8> {
-        vec![self.id()]
-    }
-    fn deserialize(_: &[u8]) -> Self {
-        Self{
-            entity_id: 0,
-            unused: "".to_string(),
-            world_seed: 0,
-            dimension: 0
+impl Packet {
+    pub fn id(&self) -> u8 {
+        match self {
+            Packet::KeepAlive => 0x00,
+            Packet::Login { .. } => 0x01,
+            Packet::Handshake { .. } => 0x02,
+            Packet::ChatMessage { .. } => 0x03,
+            Packet::PlayerPositionLook { .. } => 0x0D,
         }
     }
-}
 
-struct Handshake {
-    pub hash : String
-}
+    pub fn serialize(&self, stream: &mut TcpStream) {
+        network::send_u8(stream, self.id());
+        match self {
+            Packet::KeepAlive => {}
 
-impl Packet for Handshake {
-    fn id(&self) -> u8 {
-        return 0x02;
-    }
-    fn serialize(&self) -> Vec<u8> {
-        vec![self.id()]
-    }
-    fn deserialize(_: &[u8]) -> Self {
-        Self{hash: "-".to_string()}
-    }
-}
+            Packet::Login {
+                entity_id,
+                unused,
+                world_seed,
+                dimension,
+            } => {
+                network::send_i32(stream, *entity_id);
+                network::send_str16(stream, unused);
+                network::send_i64(stream, *world_seed);
+                network::send_i8(stream, *dimension);
+            }
 
-struct ChatMessage {
-    pub message : String
-}
+            Packet::Handshake { hash } => {
+                network::send_str16(stream, hash);
+            }
 
-impl Packet for ChatMessage {
-    fn id(&self) -> u8 {
-        return 0x03;
-    }
-    fn serialize(&self) -> Vec<u8> {
-        vec![self.id()]
-    }
-    fn deserialize(_: &[u8]) -> Self {
-        Self{message: "".to_string()}
+            Packet::ChatMessage { message } => {
+                network::send_str16(stream, message);
+            }
+
+            Packet::PlayerPositionLook { x,y,cam_y, z, yaw,pitch,on_ground} => {
+                network::send_f64(stream, *x);
+                network::send_f64(stream, *y);
+                network::send_f64(stream, *cam_y);
+                network::send_f64(stream, *z);
+                network::send_f32(stream, *pitch);
+                network::send_f32(stream, *yaw);
+                network::send_u8(stream, *on_ground as u8);
+            }
+        }
     }
 }
