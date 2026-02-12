@@ -3,6 +3,12 @@ use std::net::TcpStream;
 use std::io::Write;
 use crate::Packet;
 
+fn receive_bool(stream: &mut TcpStream) -> bool {
+    let mut buf : [u8; 1] = [0];
+    let _ = stream.read_exact(&mut buf);
+    return buf[0] != 0
+}
+
 fn receive_u8(stream: &mut TcpStream) -> u8 {
     let mut buf : [u8; 1] = [0];
     let _ = stream.read_exact(&mut buf);
@@ -56,6 +62,10 @@ fn receive_str16(stream: &mut TcpStream) -> String {
     return String::from_utf16(&utf16).unwrap();
 }
 
+pub fn send_bool(stream: &mut TcpStream, val: bool) {
+    stream.write_all(&[val as u8]).unwrap();
+}
+
 pub fn send_u8(stream: &mut TcpStream, val: u8) {
     stream.write_all(&[val]).unwrap();
 }
@@ -107,9 +117,13 @@ pub fn receive(stream: &mut TcpStream) -> io::Result<Packet> {
     let packet_id = receive_u8(stream);
 
     let packet = match packet_id {
-        1 => Packet::Login { entity_id: receive_i32(stream), unused: receive_str16(stream), world_seed: receive_i64(stream), dimension: receive_i8(stream) },
-        2 => Packet::Handshake { hash: receive_str16(stream) },
-        3 => Packet::ChatMessage { message: receive_str16(stream) },
+        0x01 => Packet::Login { entity_id: receive_i32(stream), unused: receive_str16(stream), world_seed: receive_i64(stream), dimension: receive_i8(stream) },
+        0x02 => Packet::Handshake { hash: receive_str16(stream) },
+        0x03 => Packet::ChatMessage { message: receive_str16(stream) },
+        0x0B => Packet::PlayerPosition { x: receive_f64(stream), y: receive_f64(stream), cam_y: receive_f64(stream), z: receive_f64(stream), on_ground: receive_bool(stream) },
+        0x0C => Packet::PlayerLook { yaw: receive_f32(stream), pitch: receive_f32(stream), on_ground: receive_bool(stream) },
+        0x0D => Packet::PlayerPositionLook { x: receive_f64(stream), y: receive_f64(stream), cam_y: receive_f64(stream), z: receive_f64(stream), yaw: receive_f32(stream), pitch: receive_f32(stream), on_ground: receive_bool(stream) },
+        0xFF => Packet::Disconnect { reason: receive_str16(stream) },
         _ => Packet::KeepAlive,
     };
     return Ok(packet);

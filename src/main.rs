@@ -44,10 +44,24 @@ fn handle_connection(stream: &mut TcpStream) {
 
             Packet::ChatMessage { message } => {
                 println!("Chat: {}", message);
+                network::send(&Packet::ChatMessage { message },stream);
+            }
+
+            Packet::PlayerPosition { x, y, cam_y, z, on_ground } => {
+                //println!("Pos: ({}, {}, {})", x,y,z);
+            }
+
+            Packet::PlayerLook { yaw, pitch, on_ground } => {
+                //println!("Look: ({}, {})", yaw, pitch);
             }
 
             Packet::PlayerPositionLook { x, y, cam_y, z, yaw, pitch, on_ground } => {
-                println!("Poslook: ({}, {}, {})", x,y,z);
+                //println!("PosLook: ({}, {}, {}) ({}, {})", x,y,z, yaw, pitch);
+            }
+
+            Packet::Disconnect { reason } => {
+                println!("Disconnected: {}", reason);
+                break;
             }
 
             _ => println!("Unimplemented: #{}", packet.id()),
